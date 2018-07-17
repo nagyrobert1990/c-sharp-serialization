@@ -10,13 +10,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 namespace SerializePeople
 {
     [Serializable()]
-    class Person 
+    public class Person : IDeserializationCallback, ISerializable
     {
         public String Name { get; }
-        public DateTime BirthDate { get; set; }
+        public DateTime BirthDate { get; }
         public enum Genders { Male, Female };
-        public Genders Gender { get; set; }
-        public int Age { get; }
+        public Genders Gender { get; }
+
+        [NonSerialized()] public int Age;
         
 
         public Person(string name, DateTime birthDate, Genders gender)
@@ -26,7 +27,14 @@ namespace SerializePeople
             this.Gender = gender;
             this.Age = DateTime.Today.Year - this.BirthDate.Year;
         }
-        
+
+        public Person(SerializationInfo info, StreamingContext context)
+        {
+            this.Name = (string)info.GetValue("Name", typeof(string));
+            this.BirthDate = (DateTime)info.GetValue("Birthdate", typeof(DateTime));
+            this.Gender = (Genders)info.GetValue("Gender", typeof(Genders));
+        }
+
         public void Serialize(string output)
         {
             IFormatter formatter = new BinaryFormatter();
@@ -47,6 +55,18 @@ namespace SerializePeople
             Person person = (Person)formatter.Deserialize(stream);
             stream.Close();
             return person;
+        }
+
+        public void OnDeserialization(object sender)
+        {
+            this.Age = DateTime.Today.Year - this.BirthDate.Year;
+        }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("Name", Name, typeof(string));
+            info.AddValue("Birthdate", BirthDate, typeof(DateTime));
+            info.AddValue("Gender", Gender, typeof(Genders));
         }
 
         public override string ToString()
